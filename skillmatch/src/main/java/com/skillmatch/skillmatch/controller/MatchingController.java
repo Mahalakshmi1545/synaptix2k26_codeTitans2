@@ -11,10 +11,13 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.Collections;
 import java.util.stream.Collectors;
+import com.skillmatch.skillmatch.repository.*;
 @RestController
 @RequestMapping("/match")
 public class MatchingController {
 
+	@Autowired
+	private SelectionRepository selectionRepository;
     @Autowired
     private CandidateRepository candidateRepository;
 
@@ -65,11 +68,17 @@ public class MatchingController {
                     + requiredSkills.size() + " required skills. "
                     + "Experience bonus: " + experienceBonus;
 
+            boolean isSelected =
+            	    selectionRepository.existsByCandidateIdAndProjectId(
+            	        candidate.getId(),
+            	        projectId
+            	    );
             results.add(new MatchResult(
                     candidate.getId(),
                     candidate.getName(),
                     finalScore,
-                    explanation
+                    explanation,
+                    isSelected
             ));
         }
 

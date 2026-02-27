@@ -1,3 +1,26 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+    <a class="navbar-brand fw-bold" href="#">
+        SkillMatcher
+    </a>
+
+    <div class="ms-auto">
+        <a href="candidate-register.html"
+           class="btn btn-outline-light me-2">
+           Register
+        </a>
+
+        <a href="candidate-login.html"
+           class="btn btn-outline-light me-2">
+           Login
+        </a>
+
+        
+        <button class="btn btn-danger"
+                onclick="logout()">
+            Logout
+        </button>
+    </div>
+</nav>
 <!DOCTYPE html>
 <html>
 <head>
@@ -22,7 +45,10 @@
 </div>
 
 <script>
-
+	function logout() {
+	    localStorage.clear();
+	    window.location.href = "home.html";
+	}
 const email = localStorage.getItem("candidateEmail");
 
 if (!email) {

@@ -1,3 +1,26 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+    <a class="navbar-brand fw-bold" href="#">
+        SkillMatcher
+    </a>
+
+	<button class="btn btn-danger"
+	                onclick="logout()">
+	            Home
+	        </button>
+    <div class="ms-auto">
+        <a href="company-register.html"
+           class="btn btn-outline-light me-2">
+           Register
+        </a>
+
+        <a href="company-login.html"
+           class="btn btn-outline-light me-2">
+           Login
+        </a>
+
+        
+    </div>
+</nav>
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,6 +39,10 @@
 </div>
 
 <script>
+	function logout() {
+	    localStorage.clear();
+	    window.location.href = "home.html";
+	}
 function login() {
 
     const data = {

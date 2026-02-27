@@ -57,13 +57,24 @@ public class ProjectController {
     @PostMapping("/select")
     public String selectCandidate(@RequestBody Selection selection) {
 
-        selection.setMessage("You have been selected by " + selection.getCompanyEmail());
+        Long candidateId = selection.getCandidateId();
+        Long projectId = selection.getProjectId();
+
+        boolean exists = selectionRepository
+                .existsByCandidateIdAndProjectId(candidateId, projectId);
+
+        if (exists) {
+            return "Already Selected";
+        }
+
+        selection.setMessage(
+                "You have been selected by " + selection.getCompanyEmail()
+        );
 
         selectionRepository.save(selection);
 
-        return "Candidate selected!";
-    }
-    @GetMapping("/notifications/{candidateId}")
+        return "Candidate Selected Successfully";
+    }    @GetMapping("/notifications/{candidateId}")
     public List<Selection> getNotifications(@PathVariable Long candidateId) {
         return selectionRepository.findByCandidateId(candidateId);
     }

@@ -3,8 +3,15 @@ package com.skillmatch.skillmatch.model;
 import jakarta.persistence.*;
 
 @Entity
+@Table(
+	    uniqueConstraints = @UniqueConstraint(
+	        columnNames = {"candidate_id", "project_id"}
+	    )
+	)
+
 public class Selection {
 
+	
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

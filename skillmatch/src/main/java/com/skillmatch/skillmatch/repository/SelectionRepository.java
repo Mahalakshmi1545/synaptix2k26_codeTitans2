@@ -7,4 +7,5 @@ import java.util.List;
 public interface SelectionRepository extends JpaRepository<Selection, Long> {
 
     List<Selection> findByCandidateId(Long candidateId);
+    boolean existsByCandidateIdAndProjectId(Long candidateId, Long projectId);
 }

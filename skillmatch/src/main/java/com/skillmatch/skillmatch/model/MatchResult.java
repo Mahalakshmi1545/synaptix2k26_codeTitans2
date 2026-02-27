@@ -6,12 +6,19 @@ public class MatchResult {
     private String candidateName;
     private double score;
     private String explanation;
+    private boolean selected;
 
-    public MatchResult(Long candidateId, String candidateName, double score, String explanation) {
+    public MatchResult(Long candidateId,
+                       String candidateName,
+                       double score,
+                       String explanation,
+                       boolean selected) {
+
         this.candidateId = candidateId;
         this.candidateName = candidateName;
         this.score = score;
         this.explanation = explanation;
+        this.selected = selected;
     }
 
     public Long getCandidateId() {
@@ -28,5 +35,9 @@ public class MatchResult {
 
     public String getExplanation() {
         return explanation;
+    }
+
+    public boolean isSelected() {
+        return selected;
     }
 }
