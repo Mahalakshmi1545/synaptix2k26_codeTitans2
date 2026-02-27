@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SkillMatch - Internship Matching</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <h2 class="text-center mb-4">SkillMatch - Internship Matching Platform</h2>
+
+    <div class="row">
+
+        <!-- Candidate Form -->
+        <div class="col-md-6">
+            <div class="card shadow p-3 mb-4">
+                <h4>Add Candidate</h4>
+                <input type="text" id="cName" class="form-control mb-2" placeholder="Name">
+                <input type="text" id="cSkills" class="form-control mb-2" placeholder="Skills (Java,Spring,SQL)">
+                <input type="number" id="cExp" class="form-control mb-2" placeholder="Experience (years)">
+                <button class="btn btn-primary w-100" onclick="addCandidate()">Add Candidate</button>
+            </div>
+        </div>
+
+        <!-- Project Form -->
+        <div class="col-md-6">
+            <div class="card shadow p-3 mb-4">
+                <h4>Add Project</h4>
+                <input type="text" id="pTitle" class="form-control mb-2" placeholder="Project Title">
+                <input type="text" id="pSkills" class="form-control mb-2" placeholder="Required Skills (Java,Spring,SQL)">
+                <input type="number" id="pExp" class="form-control mb-2" placeholder="Minimum Experience">
+                <button class="btn btn-success w-100" onclick="addProject()">Add Project</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Match Section -->
+    <div class="card shadow p-3 mb-4">
+        <h4>Match Candidates</h4>
+        <input type="number" id="matchProjectId" class="form-control mb-2" placeholder="Enter Project ID">
+        <button class="btn btn-dark w-100" onclick="matchCandidates()">Get Ranking</button>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card shadow p-3">
+        <h4>Ranking Results</h4>
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Candidate Name</th>
+                    <th>Score</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+
+function addCandidate() {
+    const candidate = {
+        name: document.getElementById("cName").value,
+        skills: document.getElementById("cSkills").value,
+        experience: parseInt(document.getElementById("cExp").value)
+    };
+
+    fetch("/candidates/add", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(candidate)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Candidate Added Successfully!");
+    });
+}
+
+function addProject() {
+    const project = {
+        title: document.getElementById("pTitle").value,
+        requiredSkills: document.getElementById("pSkills").value,
+        minExperience: parseInt(document.getElementById("pExp").value)
+    };
+
+    fetch("/projects/add", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(project)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Project Added Successfully!");
+    });
+}
+
+function matchCandidates() {
+
+    const projectId = document.getElementById("matchProjectId").value;
+
+    fetch("/match/" + projectId)
+    .then(response => response.json())
+    .then(data => {
+
+        const tableBody = document.getElementById("resultsBody");
+        tableBody.innerHTML = "";
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center text-danger">
+                        No candidates found for this project.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        data.forEach((result, index) => {
+
+            let highlightClass = index === 0 ? "table-success" : "";
+            let badge = index === 0 
+                ? '<span class="badge bg-success ms-2">Top Match</span>' 
+                : '';
+
+            const row = `
+                <tr class="${highlightClass}">
+                    <td>
+                        <a href="#" onclick="viewCandidate(${result.candidateId})">
+                            ${result.candidateName}
+                        </a>
+                        ${badge}
+                    </td>
+                    <td>
+                        <div class="progress">
+                            <div class="progress-bar bg-success"
+                                 role="progressbar"
+                                 style="width: ${result.score}%;">
+                                 ${result.score.toFixed(1)}%
+                            </div>
+                        </div>
+                    </td>
+                    <td>${result.explanation}</td>
+                </tr>
+            `;
+
+            tableBody.innerHTML += row;
+        });
+
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Something went wrong while fetching ranking.");
+    });
+}
+function viewCandidate(id) {
+    fetch("/candidates/details/" + id)
+    .then(response => response.json())
+    .then(data => {
+
+        document.getElementById("modalName").innerText = data.name;
+        document.getElementById("modalEmail").innerText = data.email;
+        document.getElementById("modalPhone").innerText = data.phone;
+        document.getElementById("modalLocation").innerText = data.location;
+        document.getElementById("modalSkills").innerText = data.skills;
+        document.getElementById("modalExperience").innerText = data.experience;
+
+        const modal = new bootstrap.Modal(document.getElementById('candidateModal'));
+        modal.show();
+    });
+}
+</script>
+<!-- Candidate Details Modal -->
+<div class="modal fade" id="candidateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Candidate Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p><strong>Name:</strong> <span id="modalName"></span></p>
+        <p><strong>Email:</strong> <span id="modalEmail"></span></p>
+        <p><strong>Phone:</strong> <span id="modalPhone"></span></p>
+        <p><strong>Location:</strong> <span id="modalLocation"></span></p>
+        <p><strong>Skills:</strong> <span id="modalSkills"></span></p>
+        <p><strong>Experience:</strong> <span id="modalExperience"></span> years</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

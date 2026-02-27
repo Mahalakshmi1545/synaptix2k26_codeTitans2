@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Company Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <h3 class="mb-4">Company Dashboard</h3>
+
+    <!-- Add Project Section -->
+    <div class="card p-4 shadow mb-4">
+        <h5>Add Project</h5>
+
+        <input type="text" id="title" class="form-control mb-2" placeholder="Project Title">
+        <input type="text" id="skills" class="form-control mb-2" placeholder="Required Skills">
+        <input type="number" id="experience" class="form-control mb-2" placeholder="Minimum Experience">
+
+        <button class="btn btn-success w-100" onclick="addProject()">Add Project</button>
+    </div>
+
+    <!-- My Projects -->
+    <div class="card p-4 shadow mb-4">
+        <h5>My Projects</h5>
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="projectsBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Ranking Section -->
+	<!-- Ranking Section -->
+	<div class="card p-4 shadow">
+	    <h5>Ranking Results</h5>
+
+	    <!-- Score Filter -->
+	    <div class="mb-3">
+	        <label>Minimum Score Filter</label>
+	        <input type="number" id="scoreFilter" class="form-control"
+	               placeholder="Enter minimum score (0-100)">
+	    </div>
+
+	    <p><strong>Total Candidates:</strong> 
+	       <span id="candidateCount">0</span>
+	    </p>
+
+	    <table class="table table-bordered">
+	        <thead class="table-dark">
+	            <tr>
+	                <th>Candidate</th>
+	                <th>Score</th>
+	                <th>Explanation</th>
+	                <th>Action</th>
+	            </tr>
+	        </thead>
+	        <tbody id="resultsBody"></tbody>
+	    </table>
+	</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+const companyEmail = localStorage.getItem("companyEmail");
+
+if (!companyEmail) {
+    window.location.href = "company-login.html";
+}
+
+// =========================
+// Load Company Projects
+// =========================
+function loadProjects() {
+    fetch("/projects/company/" + companyEmail)
+    .then(res => res.json())
+    .then(data => {
+
+        const body = document.getElementById("projectsBody");
+        body.innerHTML = "";
+
+        data.forEach(project => {
+            body.innerHTML += `
+                <tr>
+                    <td>${project.title}</td>
+					<td>
+					    <button class="btn btn-primary btn-sm me-2"
+					            onclick="loadRanking(${project.id})">
+					        View Ranking
+					    </button>
+
+					    <button class="btn btn-warning btn-sm me-2"
+					            onclick="editProject(${project.id}, '${project.title}', '${project.requiredSkills}', ${project.minExperience})">
+					        Edit
+					    </button>
+
+					    <button class="btn btn-danger btn-sm"
+					            onclick="deleteProject(${project.id})">
+					        Delete
+					    </button>
+					</td>                </tr>
+            `;
+        });
+    });
+}
+function deleteProject(projectId) {
+
+    if (!confirm("Are you sure you want to delete this project?")) {
+        return;
+    }
+
+    fetch("/projects/delete/" + projectId, {
+        method: "DELETE"
+    })
+    .then(res => res.text())
+    .then(message => {
+        alert(message);
+
+        // Reload project list
+        loadProjects();
+
+        // Clear ranking section
+        document.getElementById("resultsBody").innerHTML = "";
+    });
+}
+
+// =========================
+// Add Project
+// =========================
+function addProject() {
+
+    const project = {
+        title: document.getElementById("title").value,
+        requiredSkills: document.getElementById("skills").value,
+        minExperience: parseInt(document.getElementById("experience").value)
+    };
+
+    fetch("/projects/add/" + companyEmail, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(project)
+    })
+    .then(res => res.json())
+    .then(() => {
+        alert("Project Added!");
+        loadProjects();
+    });
+}
+
+// =========================
+// Load Ranking
+// =========================
+function loadRanking(projectId) {
+
+    fetch("/match/" + projectId)
+    .then(res => res.json())
+    .then(data => {
+
+        const body = document.getElementById("resultsBody");
+        body.innerHTML = "";
+
+        // Get filter value
+        let minScore = parseFloat(document.getElementById("scoreFilter").value) || 0;
+
+        // Apply filter
+        const filtered = data.filter(result => result.score >= minScore);
+
+        // Update candidate count
+        document.getElementById("candidateCount").innerText = filtered.length;
+
+        if (filtered.length === 0) {
+            body.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-danger">
+                        No candidates found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        filtered.forEach((result, index) => {
+
+            let highlight = index === 0 ? "table-success" : "";
+
+            body.innerHTML += `
+                <tr class="${highlight}">
+                    <td>
+                        <a href="#" onclick="viewCandidate(${result.candidateId})">
+                            ${result.candidateName}
+                        </a>
+                        ${index === 0 ? '<span class="badge bg-success ms-2">Top</span>' : ''}
+                    </td>
+                    <td>
+                        <div class="progress">
+                            <div class="progress-bar bg-success"
+                                 style="width: ${result.score}%;">
+                                ${result.score.toFixed(1)}%
+                            </div>
+                        </div>
+                    </td>
+                    <td>${result.explanation}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm"
+                                onclick="selectCandidate(${result.candidateId}, ${projectId}, this)">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+}
+function selectCandidate(candidateId, projectId, button) {
+
+    const selection = {
+        candidateId: candidateId,
+        projectId: projectId,
+        companyEmail: companyEmail
+    };
+
+    fetch("/projects/select", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(selection)
+    })
+    .then(res => res.text())
+    .then(msg => {
+        button.innerText = "Selected";
+        button.classList.remove("btn-success");
+        button.classList.add("btn-secondary");
+        button.disabled = true;
+    });
+}
+function editProject(id, title, skills, experience) {
+
+    document.getElementById("editProjectId").value = id;
+    document.getElementById("editTitle").value = title;
+    document.getElementById("editSkills").value = skills;
+    document.getElementById("editExperience").value = experience;
+
+    const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
+    modal.show();
+}
+
+function updateProject() {
+
+    const id = document.getElementById("editProjectId").value;
+
+    const updatedData = {
+        title: document.getElementById("editTitle").value,
+        requiredSkills: document.getElementById("editSkills").value,
+        minExperience: parseInt(document.getElementById("editExperience").value)
+    };
+
+    fetch("/projects/update/" + id, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(updatedData)
+    })
+    .then(res => res.text())
+    .then(msg => {
+        alert(msg);
+        loadProjects();
+    });
+}
+
+// =========================
+// View Candidate Details
+// =========================
+function viewCandidate(id) {
+
+    fetch("/candidates/details/" + id)
+    .then(response => response.json())
+    .then(data => {
+
+        document.getElementById("modalName").innerText = data.name;
+        document.getElementById("modalEmail").innerText = data.email;
+        document.getElementById("modalPhone").innerText = data.phone;
+        document.getElementById("modalLocation").innerText = data.location;
+        document.getElementById("modalSkills").innerText = data.skills;
+        document.getElementById("modalExperience").innerText = data.experience;
+
+        const modal = new bootstrap.Modal(document.getElementById('candidateModal'));
+        modal.show();
+    });
+}
+
+loadProjects();
+
+</script>
+<!-- Candidate Details Modal -->
+<div class="modal fade" id="candidateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Candidate Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p><strong>Name:</strong> <span id="modalName"></span></p>
+        <p><strong>Email:</strong> <span id="modalEmail"></span></p>
+        <p><strong>Phone:</strong> <span id="modalPhone"></span></p>
+        <p><strong>Location:</strong> <span id="modalLocation"></span></p>
+        <p><strong>Skills:</strong> <span id="modalSkills"></span></p>
+        <p><strong>Experience:</strong> <span id="modalExperience"></span> years</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- Edit Project Modal -->
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Project</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="editProjectId">
+
+        <input type="text" id="editTitle" class="form-control mb-2" placeholder="Project Title">
+        <input type="text" id="editSkills" class="form-control mb-2" placeholder="Required Skills">
+        <input type="number" id="editExperience" class="form-control mb-2" placeholder="Minimum Experience">
+
+        <button class="btn btn-success w-100" onclick="updateProject()">Save Changes</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
